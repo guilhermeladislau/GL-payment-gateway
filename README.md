@@ -157,7 +157,3 @@ gateway-payment/
 | DB_PASS | postgres | Senha |
 | DB_NAME | gateway | Database |
 | INSTANCE_NAME | hostname | Identificador da instância |
-
-## Licença
-
-MIT
