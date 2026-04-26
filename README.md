@@ -75,6 +75,7 @@ Espera uns 30 segundos e acessa:
 
 ### Testando a API
 
+**No Linux, Mac ou Git Bash:**
 ```bash
 # health check
 curl http://localhost:8080/health
@@ -86,6 +87,20 @@ curl -X POST http://localhost:8080/transactions \
 
 # listar
 curl http://localhost:8080/transactions
+```
+
+**No Windows (PowerShell):**
+```powershell
+# health check
+curl.exe http://localhost:8080/health
+
+# criar transação
+curl.exe -X POST http://localhost:8080/transactions `
+  -H "Content-Type: application/json" `
+  -d '{"amount": 150.75, "card_type": "credit", "card_number_hash": "a1b2c3d4e5f6", "status": "approved"}'
+
+# listar
+curl.exe http://localhost:8080/transactions
 ```
 
 Para derrubar:
