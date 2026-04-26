@@ -92,15 +92,16 @@ curl http://localhost:8080/transactions
 **No Windows (PowerShell):**
 ```powershell
 # health check
-curl.exe http://localhost:8080/health
+Invoke-RestMethod -Uri "http://localhost:8080/health"
 
 # criar transação
-curl.exe -X POST http://localhost:8080/transactions `
-  -H "Content-Type: application/json" `
-  -d '{"amount": 150.75, "card_type": "credit", "card_number_hash": "a1b2c3d4e5f6", "status": "approved"}'
+Invoke-RestMethod -Uri "http://localhost:8080/transactions" `
+  -Method Post `
+  -ContentType "application/json" `
+  -Body '{"amount": 150.75, "card_type": "credit", "card_number_hash": "a1b2c3d4e5f6", "status": "approved"}'
 
 # listar
-curl.exe http://localhost:8080/transactions
+Invoke-RestMethod -Uri "http://localhost:8080/transactions"
 ```
 
 Para derrubar:
