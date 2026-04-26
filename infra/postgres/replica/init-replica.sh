@@ -15,8 +15,6 @@ if [ ! -f "$PGDATA/standby.signal" ]; then
 hot_standby = on
 CONF
 
-  # Override the auto-generated primary_conninfo with application_name
-  # This is required for synchronous replication to identify this replica
   cat > "$PGDATA/postgresql.auto.conf" <<CONF
 primary_conninfo = 'host=pg-primary port=5432 user=replicator password=replicator_pass application_name=pg-replica'
 CONF
