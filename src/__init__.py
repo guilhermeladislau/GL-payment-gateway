@@ -1,1 +1,1 @@
-# HA Payment Gateway
+# GL Payment Gateway

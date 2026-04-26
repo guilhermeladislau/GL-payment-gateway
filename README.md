@@ -1,4 +1,4 @@
-# HA Payment Gateway
+# GL Payment Gateway
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
@@ -60,7 +60,7 @@ Precisa ter Docker Desktop instalado.
 
 ```bash
 git clone <url-do-repositorio>
-cd ha-payment-gateway
+cd gateway-payment
 docker compose up -d --build
 ```
 
@@ -117,7 +117,7 @@ pytest
 ## Estrutura
 
 ```
-ha-payment-gateway/
+gateway-payment/
 ├── src/
 │   ├── main.py          # app FastAPI
 │   ├── database.py      # engine e session

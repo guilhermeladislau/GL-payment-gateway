@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from src.routes import router, http_requests_total, http_request_duration
 
 app = FastAPI(
-    title="HA Payment Gateway",
+    title="GL Payment Gateway",
     version="1.0.0",
 )
 
