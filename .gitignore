@@ -42,14 +42,3 @@ coverage/
 
 # Logs
 *.log
-
-# Terraform
-infra/terraform/.terraform/
-infra/terraform/*.tfstate
-infra/terraform/*.tfstate.backup
-infra/terraform/.terraform.lock.hcl
-
-# Node (legacy, pode ser removido)
-node_modules/
-dist/
-package-lock.json

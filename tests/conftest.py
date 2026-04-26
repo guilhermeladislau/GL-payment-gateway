@@ -1,40 +1,53 @@
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from src.database import Base, get_db
-from src.main import app
 
-TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
+# criar o engine de teste ANTES de importar a app
+# isso evita que o startup tente conectar ao postgres
+TEST_DB_URL = "sqlite://"
 
-test_engine = create_async_engine(TEST_DB_URL, echo=False)
-test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
+test_engine = create_engine(
+    "sqlite://",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestSession = sessionmaker(test_engine, expire_on_commit=False)
 
 
-async def override_get_db():
-    async with test_session() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
+def override_get_db():
+    db = TestSession()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
+
+# Precisa importar DEPOIS de configurar o override
+# e sobrescrever o engine no modulo database pra o startup funcionar
+import src.database as db_module
+db_module.engine = test_engine
+
+from src.main import app  # noqa: E402
 
 app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest.fixture(autouse=True)
-async def setup_db():
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+def setup_db():
+    Base.metadata.create_all(bind=test_engine)
     yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture
-async def client():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as c:
+def client():
+    with TestClient(app) as c:
         yield c

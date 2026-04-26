@@ -1,19 +1,14 @@
 FROM python:3.12-slim AS base
 WORKDIR /app
 
-# Instalar dependências primeiro (cache de camada Docker)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM base AS production
 WORKDIR /app
 COPY src/ ./src/
-COPY migrations/ ./migrations/
-COPY alembic.ini .
 
-# Executar como usuário não-root
 USER nobody
-
 EXPOSE 3000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \

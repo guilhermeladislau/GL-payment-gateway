@@ -5,7 +5,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import Response
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, func, text
 from pydantic import BaseModel
 from prometheus_client import Counter, Histogram, generate_latest
@@ -15,7 +15,8 @@ from src.models import Transaction
 
 router = APIRouter()
 
-# metricas prometheus
+# --- metricas ---
+
 http_requests_total = Counter(
     "gateway_http_requests_total",
     "Total de requests HTTP",
@@ -34,7 +35,6 @@ transactions_counter = Counter(
 )
 
 
-# pydantic models
 class TransactionCreate(BaseModel):
     amount: float
     card_type: str
@@ -54,28 +54,27 @@ class TransactionOut(BaseModel):
         from_attributes = True
 
 
-# ===================== HEALTH =====================
+# health checks
 
 @router.get("/health")
-async def health():
+def health():
     instance = os.getenv("INSTANCE_NAME", socket.gethostname())
     return {"status": "ok", "instance": instance}
 
 
 @router.get("/health/live")
-async def liveness():
+def liveness():
     instance = os.getenv("INSTANCE_NAME", socket.gethostname())
     return {"status": "ok", "instance": instance}
 
 
 @router.get("/health/ready")
-async def readiness(db: AsyncSession = Depends(get_db)):
+def readiness(db: Session = Depends(get_db)):
     instance = os.getenv("INSTANCE_NAME", socket.gethostname())
     environment = os.getenv("ENVIRONMENT", "development")
 
-    # checar banco
     try:
-        await db.execute(text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         db_status = {"status": "ok", "details": "Conexão ativa"}
     except Exception as e:
         print(f"Erro no health check do banco: {e}")
@@ -94,11 +93,10 @@ async def readiness(db: AsyncSession = Depends(get_db)):
     }
 
 
-# ===================== TRANSAÇÕES =====================
+# transações
 
 @router.post("/transactions", status_code=201)
-async def create_transaction(data: TransactionCreate, db: AsyncSession = Depends(get_db)):
-    # validar dados manualmente
+def create_transaction(data: TransactionCreate, db: Session = Depends(get_db)):
     if data.amount <= 0:
         raise HTTPException(status_code=422, detail="Amount deve ser maior que 0")
 
@@ -121,8 +119,8 @@ async def create_transaction(data: TransactionCreate, db: AsyncSession = Depends
         status=data.status,
     )
     db.add(transaction)
-    await db.flush()
-    await db.refresh(transaction)
+    db.flush()
+    db.refresh(transaction)
 
     # incrementar metrica
     transactions_counter.labels(card_type=data.card_type, status=data.status).inc()
@@ -133,19 +131,19 @@ async def create_transaction(data: TransactionCreate, db: AsyncSession = Depends
 
 
 @router.get("/transactions")
-async def list_transactions(
+def list_transactions(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ):
     # buscar transacoes
     query = select(Transaction).offset(skip).limit(limit).order_by(Transaction.created_at.desc())
-    result = await db.execute(query)
+    result = db.execute(query)
     transactions = result.scalars().all()
 
     # contar total
     count_query = select(func.count()).select_from(Transaction)
-    count_result = await db.execute(count_query)
+    count_result = db.execute(count_query)
     total = count_result.scalar_one()
 
     return {
@@ -155,9 +153,9 @@ async def list_transactions(
 
 
 @router.get("/transactions/{transaction_id}")
-async def get_transaction(transaction_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+def get_transaction(transaction_id: uuid.UUID, db: Session = Depends(get_db)):
     query = select(Transaction).where(Transaction.id == transaction_id)
-    result = await db.execute(query)
+    result = db.execute(query)
     transaction = result.scalar_one_or_none()
 
     if transaction is None:
@@ -166,9 +164,9 @@ async def get_transaction(transaction_id: uuid.UUID, db: AsyncSession = Depends(
     return TransactionOut.model_validate(transaction)
 
 
-# ===================== METRICAS =====================
-
 @router.get("/metrics")
-async def get_metrics():
-    output = generate_latest()
-    return Response(content=output, media_type="text/plain; version=0.0.4; charset=utf-8")
+def get_metrics():
+    return Response(
+        content=generate_latest(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )

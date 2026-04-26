@@ -12,13 +12,12 @@ app = FastAPI(
 
 # cria as tabelas quando a app inicia
 @app.on_event("startup")
-async def startup():
+def startup():
     from src.database import engine, Base
     from src.models import Transaction  # noqa - precisa importar pra registrar o model
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("Tabelas criadas!")
+    Base.metadata.create_all(bind=engine)
+    print("tabelas criadas")
 
 
 # middleware de metricas
@@ -47,4 +46,4 @@ async def metrics_middleware(request: Request, call_next):
 
 app.include_router(router)
 
-print("App iniciado!")
+print("app iniciado")
